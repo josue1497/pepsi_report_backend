@@ -4,7 +4,11 @@ header('Access-Control-Allow-Origin: *');
 // permite peticiones con métodos GET, PUT, POST, DELETE y OPTIONS
 header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
 // permite los headers Content-Type y Authorization
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: *');
+// header('Access-Control-Allow-Headers: content-type');
+// header('Access-Control-Allow-Headers: Authorization');
+
+
 /**
  * Laravel - A PHP Framework For Web Artisans
  *

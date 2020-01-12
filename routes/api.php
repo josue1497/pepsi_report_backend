@@ -33,3 +33,12 @@ Route::group([
     Route::post('kitreport', 'KitReportsController@import');
     Route::post('kitdetailsreport', 'KitDetailsReportsController@import');
 });
+
+
+Route::resource('user', 'UserController');
+
+Route::group(['prefix' => 'reports'], function () {
+    Route::post('calls_center_data', 'ReportsController@getCallCenterData');
+    Route::post('kit_details_data', 'ReportsController@getKitDetailsReportData');
+
+});
