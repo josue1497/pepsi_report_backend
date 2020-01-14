@@ -143,34 +143,6 @@ class KitReportsController extends Controller
 
                 $rows++;
             }
-            /**
-             * Cliente: ""
-Pto.tbjo.resp.: "SMTT06"
-: "SAP2"
-Status usuario: "C000"
-Clase de orden: "ZPMI"
-Orden: "89377430"
-Autor: "R25GOBERTO"
-Texto breve: "ANULADA MAL CREADA"
-Equipo: ""
-Activo fijo: ""
-Denominación: ""
-Status sistema: "CERR KKMP NEJE PREC"
-Ce.emplazam.: "A012"
-Centro planif.: "A020"
-Emplazamiento: "VALLESCEN"
-Fe.inic.extrema: 43711
-Fecha modific.: 43710
-Fecha entrada: 43710
-Fe.fin extrema: 43713
-Ctro.pto.trab.: "A020"
-Sociedad: "C001"
-Modificado por: "R25GOBERTO"
-Centro: "A020"
-Grupo planif.: "A06"
-TotalGen.(real): 0
-Cl.actividad PM: "069"
-             */
         }
 
         DB::insert('INSERT INTO documents
