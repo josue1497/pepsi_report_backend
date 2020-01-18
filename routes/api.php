@@ -40,5 +40,10 @@ Route::resource('user', 'UserController');
 Route::group(['prefix' => 'reports'], function () {
     Route::post('calls_center_data', 'ReportsController@getCallCenterData');
     Route::post('kit_details_data', 'ReportsController@getKitDetailsReportData');
+    Route::post('general_indicators', 'ReportsController@getGeneralIndicators');
+    Route::post('zones', 'ReportsController@get_zones');
+    Route::post('expired_orders', 'ReportsController@get_expired_orders');
+    Route::post('activity_orders', 'ReportsController@get_activity_orders');
+
 
 });
