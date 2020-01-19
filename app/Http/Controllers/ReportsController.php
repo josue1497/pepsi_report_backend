@@ -369,4 +369,8 @@ class ReportsController extends Controller
             ]
         );
     }
+
+    function getDashboardData(Request $request){
+
+    }
 }
