@@ -10,15 +10,15 @@ class ReportsController extends Controller
     function getCallCenterData(Request $request)
     {
 
-        $sqlCalls = "select `date`, sum(call_assigned) call_assigned, sum(call_managed) call_managed,
+        $sqlCalls = "select date_format(`date`, '%b %d') `date`, sum(call_assigned) call_assigned, sum(call_managed) call_managed,
 		sum(call_reject) call_reject, sum(call_inquiry) call_inquiry,
 		sum(call_outgoing) call_outgoing, sum(call_unattended) call_unattended ,
 		avg(call_average_response_time) call_average_response_time, sum(sms) sms ";
 
-        $sqlChats = "select `date`, sum(chat_assigned) chat_assigned, sum(chat_managed) chat_managed,
+        $sqlChats = "select date_format(`date`, '%b %d') `date`, sum(chat_assigned) chat_assigned, sum(chat_managed) chat_managed,
 		avg(chat_average_response_time)  chat_average_response_time ";
 
-        $sqlEmails = "select `date`, sum(email_assigned) email_assigned, sum(email_managed) email_managed,
+        $sqlEmails = "select date_format(`date`, '%b %d') `date`, sum(email_assigned) email_assigned, sum(email_managed) email_managed,
         sum(email_outgoing) email_outgoing,	avg(email_average_response_time)  email_average_response_time ";
 
 
@@ -56,12 +56,12 @@ class ReportsController extends Controller
             ]);
         }
 
-        if (self::calculateDateDiff($request->from_date, $request->to_date, 7)) {
-            return response()->json([
-                'status' => "300",
-                'message' => 'Entre las fechas seleccionadas debe haber menos de una semana de diferencia.'
-            ]);
-        }
+        // if (self::calculateDateDiff($request->from_date, $request->to_date, 7)) {
+        //     return response()->json([
+        //         'status' => "300",
+        //         'message' => 'Entre las fechas seleccionadas debe haber menos de una semana de diferencia.'
+        //     ]);
+        // }
 
         $dataCalls = DB::select($sqlCalls . $from_sentence . $where_clause . $group_by, [$request->user_id, $request->from_date, $request->to_date]);
 
@@ -81,38 +81,60 @@ class ReportsController extends Controller
     function getKitDetailsReportData(Request $request)
     {
 
+        $month = $request->month;
+        $site = $request->site;
+        $status = $request->status;
+
+        $group_by = "";
+
         $from_sentence = " from kit_details_reports  ";
 
         $sqlBySite = "select count(*) cant, company_area, site " . $from_sentence;
 
         $sqlByMonth = "select count(*) cant, `month` " . $from_sentence;
 
-        $sqlByStatusSite = "select count(*) cant, user_status, site " . $from_sentence . " group by user_status, site ";
+        $sqlByStatusSite = "select count(*) cant, user_status, site " . $from_sentence;
 
-        $sqlByStatus = "select count(*) cant, user_status, site " . $from_sentence . " group by user_status, site ";
+        $sqlByStatus = "select count(*) cant, user_status, site " . $from_sentence;
 
 
         $dataByMonth = null;
-        if ($request->month) {
-            $sqlByMonth = $sqlByMonth . ' where  `month` = ? group by `month`';
-            $dataByMonth = DB::select($sqlByMonth, [$request->month]);
+        $group_by = " group by `month` ";
+        if ($month) {
+            $sqlByMonth = $sqlByMonth . ' where  `month` = ? ';
+            $dataByMonth = DB::select($sqlByMonth.$group_by, [$month]);
         } else {
-            $sqlByMonth = $sqlByMonth . ' group by `month`';
+            $sqlByMonth = $sqlByMonth .$group_by;
             $dataByMonth = DB::select($sqlByMonth);
         }
 
         $dataBySite = null;
-        if ($request->company_area) {
+        if ($site) {
             $sqlBySite = $sqlBySite . ' where  company_area = ? group by company_area , site ';
-            $dataBySite = DB::select($sqlBySite, [$request->company_area]);
+            $dataBySite = DB::select($sqlBySite, [$site]);
         } else {
             $sqlBySite = $sqlBySite . ' group by company_area, site';
             $dataBySite = DB::select($sqlBySite);
         }
 
-        $dataByStatusSite = DB::select($sqlByStatusSite);
+        if ($status) {
+            $sqlByStatus = $sqlByStatus . ' where  user_status = ?  group by user_status, site  ';
+            $dataByStatus = DB::select($sqlByStatus, [$status]);
+        } else {
+            $sqlByStatus = $sqlByStatus . ' group by company_area, site';
+            $dataByStatus = DB::select($sqlByStatus);
+        }
 
-        $dataByStatus = DB::select($sqlByStatus);
+        if ($site && $status) {
+            $sqlByStatusSite = $sqlByStatusSite . ' where  company_area = ? and user_status = ? group by user_status, site';
+            $dataByStatusSite = DB::select($sqlByStatusSite, [$site, $status]);
+        } else {
+            $sqlByStatusSite = $sqlByStatusSite . ' group by user_status, site';
+            $dataByStatusSite = DB::select($sqlByStatusSite);
+        }
+
+
+        // $dataByStatus = DB::select($sqlByStatus);
 
         return response()->json([
             'status' => "200",
@@ -143,6 +165,11 @@ class ReportsController extends Controller
 
     function getGeneralIndicators(Request $request)
     {
+
+        $user_id = $request->user_id;
+        $role_id = $request->role_id;
+
+        $user_and = ($role_id != 1) ? (' and user_id=' . $user_id . ' ') : ' ';
 
         $from_sentence = " from kit_reports ";
 
@@ -182,9 +209,9 @@ class ReportsController extends Controller
             ]);
         }
 
-        $sqlOrderClass = " select count(k.report_type_id) cant, r.name, k.entry_date " . $from_sentence . " as k
+        $sqlOrderClass = " select count(k.report_type_id) cant, r.name, date_format(k.entry_date, '%b %d') entry_date " . $from_sentence . " as k
                            inner join report_type as r on (r.id=k.report_type_id) ";
-        $where_clause = " where `zone`=? and entry_date between ? and ? ";
+        $where_clause = " where `zone`=? and entry_date between ? and ? " . $user_and;
         $extra_clouse = " group by r.value, entry_date , r.name order by entry_date ";
 
         //order class
@@ -214,9 +241,9 @@ class ReportsController extends Controller
 
         $data_status = DB::select($sqlStatus . $where_clause . $extra_clouse, [$request->site, $request->from_date, $request->to_date]);
 
-        $sqlCancelledOrders = "select count(*) cant,  entry_date " . $from_sentence;
+        $sqlCancelledOrders = "select count(*) cant,  date_format(`entry_date`, '%b %d') entry_date " . $from_sentence;
         $where_clause = " where lower(short_text) like lower('%ANULADA%')
-                                and `zone`=? and entry_date between ? and ? ";
+                                and `zone`=? and entry_date between ? and ? " . $user_and;
         $extra_clouse = " group by  entry_date order by entry_date desc";
 
         $data_cancelled = DB::select($sqlCancelledOrders . $where_clause . $extra_clouse, [$request->site, $request->from_date, $request->to_date]);
@@ -284,19 +311,24 @@ class ReportsController extends Controller
     function get_expired_orders(Request $request)
     {
 
-        $sql = "select count(*) cant, entry_date from kit_reports
+        $user_id = $request->user_id;
+        $role_id = $request->role_id;
+
+        $user_and = ($role_id != 1) ? (' and user_id=' . $user_id . ' ') : ' ';
+
+        $sql = "select count(*) cant, date_format(entry_date, '%b %d') entry_date from kit_reports
         where user_status='C000'
-        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date
+        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date ".$user_and."
         group by entry_date
         order by entry_date";
 
-        $sqlOrdersDetails = "select k.id, k.client_id, k.`zone`,k.entry_date,
-        k.extreme_end_date, order_number, r.value, concat(u.name,' ',u.lastname) operator
+        $sqlOrdersDetails = "select k.id, k.client_id, k.`zone`,date_format(k.entry_date, '%b %d') entry_date,
+        date_format(k.extreme_end_date, '%b %d') extreme_end_date, order_number, r.value, concat(u.name,' ',u.lastname) operator
         from kit_reports k
         inner join users u on (u.id=k.user_id)
         inner join report_type r on (k.report_type_id=r.id)
         where user_status='C000'
-        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date
+        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date ".$user_and."
         order by entry_date";
 
         $count_data = DB::select($sql);
@@ -313,6 +345,11 @@ class ReportsController extends Controller
 
     function get_activity_orders(Request $request)
     {
+        $user_id = $request->user_id;
+        $role_id = $request->role_id;
+
+        $user_and = ($role_id != 1) ? (' and user_id=' . $user_id . ' ') : ' ';
+
         $sql = "select count(k.report_type_id) cant,
         (case when STRCMP(pm_activity,'044')=0 then '044 - Administrativa.'
               when STRCMP(pm_activity,'069')=0 then '069 - CT.'
@@ -320,7 +357,7 @@ class ReportsController extends Controller
               when STRCMP(pm_activity,'042')=0 then '042 - Normal.'
               else '-' end) as pm_activity from kit_reports as k
        inner join report_type as r on (r.id=k.report_type_id)
-       where r.value='ZPMI' and `zone`= ? and entry_date between ? and ?
+       where r.value='ZPMI' and `zone`= ? and entry_date between ? and ? ".$user_and."
        group by k.pm_activity
        order by entry_date desc";
 
@@ -353,24 +390,154 @@ class ReportsController extends Controller
             ]);
         }
 
-        if (self::calculateDateDiff($request->from_date, $request->to_date, 30)) {
-            return response()->json([
-                'status' => "300",
-                'message' => 'Entre las fechas seleccionadas debe haber menos de un mes de diferencia.'
-            ]);
-        }
+        // if (self::calculateDateDiff($request->from_date, $request->to_date, 30)) {
+        //     return response()->json([
+        //         'status' => "300",
+        //         'message' => 'Entre las fechas seleccionadas debe haber menos de un mes de diferencia.'
+        //     ]);
+        // }
 
         $response = DB::select($sql, [$request->site, $request->from_date, $request->to_date]);
 
         return response()->json(
             [
+                'status' => 200,
                 'data' => $response,
                 'message' => 'Busqueda exitosa.'
             ]
         );
     }
 
-    function getDashboardData(Request $request){
+    function getDashboardData(Request $request)
+    {
 
+        $user_id = $request->user_id;
+        $role_id = $request->role_id;
+
+        $user_and = ($role_id != 1) ? (' and user_id=' . $user_id . ' ') : ' ';
+
+        $sql_call_total_m = "select ifnull(sum(call_managed),0) cant, month(`date`) `date` from call_center_reports
+        where month(`date`)=month(current_date) or
+        month(`date`) = month((CURRENT_DATE() - INTERVAL 1 MONTH)) " . $user_and . "
+        group by month(`date`)
+        order by `date` desc limit 2";
+
+        $sql_call_total_r = " select sum(call_reject) cant, month(`date`) `date`
+        from call_center_reports
+        where month(`date`)=month(current_date) or
+        month(`date`) = month((CURRENT_DATE() - INTERVAL 1 MONTH)) " . $user_and . "
+        group by month(`date`) order by `date` desc limit 2";
+
+        $sql_order_anuladas = "select count(*) cant, month(`entry_date`) entry_date  from kit_reports
+        where (month(entry_date)=month(current_date) or
+        month(entry_date) = month((CURRENT_DATE() - INTERVAL 1 MONTH)))
+        and short_text like '%anulada%' " . $user_and . "
+        group by month(`entry_date`)
+        order by entry_date desc limit 2";
+
+        $sql_orders_total = "select count(*) cant,  month(`entry_date`) entry_date from kit_reports
+        where (month(entry_date)=month(current_date) or
+        month(entry_date) = month((CURRENT_DATE() - INTERVAL 1 MONTH)))
+        and user_status='C010' " . $user_and . "
+        group by month(`entry_date`)
+        order by entry_date desc limit 2";
+
+        $sql_order_by_date = "select count(*) cant,  date_format(`entry_date`, '%b %d') entry_date from kit_reports
+        where user_status != 'C000' " . $user_and . "
+        group by date_format(`entry_date`, '%b %d')
+        order by entry_date
+        limit 5";
+
+        $user_and = ($role_id != 1) ? (' where user_id=' . $user_id . ' ') : ' ';
+
+        $sql_call_by_date = "select sum(call_managed) cant, date_format(`date`, '%b %d') `date`
+        from call_center_reports
+        " . $user_and . "
+        group by date_format(`date`, '%b %d')
+        order by `date` desc
+        limit 5";
+
+        $sql_best_five_orders = "select count(order_number) cant, concat(u.name, ' ', u.lastname) names from kit_reports k
+        inner join users u on (u.id=k.user_id)
+        where user_status='C010' and month(entry_date)=month(current_date)
+        group by concat(u.name, ' ', u.lastname)
+        order by count(order_number) desc
+        limit 5";
+
+        $sql_best_five_call = "select sum(call_managed) cant, concat(u.name, ' ', u.lastname) names
+        from call_center_reports c
+        inner join users u on (u.id=c.user_id)
+        where month(`date`)=month(current_date)
+        group by concat(u.name, ' ', u.lastname)
+        order by sum(call_managed) desc
+        limit 5";
+
+        $data_call_manage = DB::select($sql_call_total_m);
+        $data_call_rejected = DB::select($sql_call_total_r);
+
+        $data_orders_total = DB::select($sql_orders_total);
+        $data_order_anuladas = DB::select($sql_order_anuladas);
+
+        $data_order_by_date = DB::select($sql_order_by_date);
+        $data_call_by_date = DB::select($sql_call_by_date);
+
+        $data_order_best = DB::select($sql_best_five_orders);
+        $data_call_best = DB::select($sql_best_five_call);
+
+        return response()->json(
+            [
+                'data_call_manage' => $data_call_manage,
+                'data_call_rejected' => $data_call_rejected,
+                'data_orders_total' => $data_orders_total,
+                'data_order_anuladas' => $data_order_anuladas,
+                'data_order_by_date' => $data_order_by_date,
+                'data_call_by_date' => $data_call_by_date,
+                'data_order_best' => $data_order_best,
+                'data_call_best' => $data_call_best,
+                'message' => 'Busqueda exitosa.',
+                'code' => '200'
+            ]
+        );
+    }
+
+    public function get_months(Request $request)
+    {
+        $sql = 'select distinct(site) from kit_details_reports where site is not null and site!=""';
+        $data = DB::select($sql, [1]);
+
+        return response()->json(
+            [
+                'data' => $data,
+                'message' => 'Busqueda exitosa.',
+                'code' => '200'
+            ]
+        );
+    }
+
+    public function get_sites(Request $request)
+    {
+        $sql = 'select distinct(`month`) from kit_details_reports';
+        $data = DB::select($sql, [1]);
+
+        return response()->json(
+            [
+                'data' => $data,
+                'message' => 'Busqueda exitosa.',
+                'code' => '200'
+            ]
+        );
+    }
+    public function get_status(Request $request)
+    {
+        $sql = 'select distinct(user_status) from kit_details_reports where user_status is not null and user_status!=""';
+        $data = DB::select($sql, [1]);
+
+        return response()->json(
+            [
+                'data' => $data,
+                'message' => 'Busqueda exitosa.',
+                'code' => '200'
+            ]
+        );
     }
 }

@@ -36,14 +36,20 @@ Route::group([
 
 
 Route::resource('user', 'UserController');
+Route::post('user/activate/', 'UserController@disable_or_enable_user');
+Route::post('user/change_password/', 'UserController@change_password');
+Route::post('user/reset_pass/', 'UserController@reset_pass');
+
 
 Route::group(['prefix' => 'reports'], function () {
     Route::post('calls_center_data', 'ReportsController@getCallCenterData');
     Route::post('kit_details_data', 'ReportsController@getKitDetailsReportData');
     Route::post('general_indicators', 'ReportsController@getGeneralIndicators');
     Route::post('zones', 'ReportsController@get_zones');
+    Route::post('sites', 'ReportsController@get_sites');
+    Route::post('status', 'ReportsController@get_status');
+    Route::post('months', 'ReportsController@get_months');
     Route::post('expired_orders', 'ReportsController@get_expired_orders');
     Route::post('activity_orders', 'ReportsController@get_activity_orders');
-
-
+    Route::post('dashboard_data', 'ReportsController@getDashboardData');
 });
