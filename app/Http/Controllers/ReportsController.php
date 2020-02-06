@@ -102,9 +102,9 @@ class ReportsController extends Controller
         $group_by = " group by `month` ";
         if ($month) {
             $sqlByMonth = $sqlByMonth . ' where  `month` = ? ';
-            $dataByMonth = DB::select($sqlByMonth.$group_by, [$month]);
+            $dataByMonth = DB::select($sqlByMonth . $group_by, [$month]);
         } else {
-            $sqlByMonth = $sqlByMonth .$group_by;
+            $sqlByMonth = $sqlByMonth . $group_by;
             $dataByMonth = DB::select($sqlByMonth);
         }
 
@@ -318,7 +318,7 @@ class ReportsController extends Controller
 
         $sql = "select count(*) cant, date_format(entry_date, '%b %d') entry_date from kit_reports
         where user_status='C000'
-        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date ".$user_and."
+        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date " . $user_and . "
         group by entry_date
         order by entry_date";
 
@@ -328,7 +328,7 @@ class ReportsController extends Controller
         inner join users u on (u.id=k.user_id)
         inner join report_type r on (k.report_type_id=r.id)
         where user_status='C000'
-        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date ".$user_and."
+        and DATE_ADD(entry_date , INTERVAL 2 DAY) >= extreme_end_date " . $user_and . "
         order by entry_date";
 
         $count_data = DB::select($sql);
@@ -357,7 +357,7 @@ class ReportsController extends Controller
               when STRCMP(pm_activity,'042')=0 then '042 - Normal.'
               else '-' end) as pm_activity from kit_reports as k
        inner join report_type as r on (r.id=k.report_type_id)
-       where r.value='ZPMI' and `zone`= ? and entry_date between ? and ? ".$user_and."
+       where r.value='ZPMI' and `zone`= ? and entry_date between ? and ? " . $user_and . "
        group by k.pm_activity
        order by entry_date desc";
 
@@ -535,6 +535,87 @@ class ReportsController extends Controller
         return response()->json(
             [
                 'data' => $data,
+                'message' => 'Busqueda exitosa.',
+                'code' => '200'
+            ]
+        );
+    }
+
+    public function get_pto_job(Request $request)
+    {
+        $sql = "select count(pto_tbjo_resp) cant, pto_tbjo_resp
+        from kit_reports
+        where init_date between ? and ?
+        group by pto_tbjo_resp";
+
+        $date_from = $request->date_from;
+        $date_to = $request->date_to;
+
+        $data = DB::select($sql, [$date_from, $date_to]);
+
+        return response()->json(
+            [
+                'data' => $data,
+                'message' => 'Busqueda exitosa.',
+                'code' => '200'
+            ]
+        );
+    }
+
+    public function report_by_user(Request $request)
+    {
+
+
+        $user_id = $request->user_id;
+        $date_from = $request->date_from;
+        $date_to = $request->date_to;
+
+        $anulated_sql = "select * from kit_reports
+        where user_status='C000'
+        and DATE_ADD(init_date , INTERVAL 2 DAY) >= extreme_end_date
+        and user_id=? and entry_date between ? and ?
+        and extreme_end_date <= current_date";
+
+        $anulated = DB::select($anulated_sql, [$user_id, $date_from, $date_to]);
+
+        $sql_zone = "select count(`zone`) cant, `zone` from kit_reports
+        where user_id= ? and init_date between ? and ?
+        and `zone` is not null
+        group by `zone`";
+
+        $zone = DB::select($sql_zone, [$user_id, $date_from, $date_to]);
+
+        $sql_status = "select count(user_status) cant, `user_status`
+        from kit_reports
+        where user_id= ? and init_date between ? and ?
+        group by `user_status`";
+
+        $status = DB::select($sql_status, [$user_id, $date_from, $date_to]);
+
+        $sql_charge = "select count(charge_key) cant, charge_key
+        from kit_reports
+        where user_id= ? and init_date between ? and ?
+        and charge_key is not null
+        group by charge_key";
+
+        $charge = DB::select($sql_charge, [$user_id, $date_from, $date_to]);
+
+        $sql_olds = "select * from kit_reports
+        where user_status='C000'
+        and DATE_ADD(init_date , INTERVAL 2 DAY) >= extreme_end_date
+        and user_id= ? and init_date between ? and ?
+        and extreme_end_date <= current_date";
+
+        $olds = DB::select($$sql_olds, [$user_id, $date_from, $date_to]);
+
+
+        return response()->json(
+            [
+                'anulated' => $anulated,
+                'zone' => $zone,
+                'status' => $status,
+                'olds' => $olds,
+                'charge' => $charge,
                 'message' => 'Busqueda exitosa.',
                 'code' => '200'
             ]
