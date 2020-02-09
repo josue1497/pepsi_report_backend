@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,4 +53,16 @@ Route::group(['prefix' => 'reports'], function () {
     Route::post('expired_orders', 'ReportsController@get_expired_orders');
     Route::post('activity_orders', 'ReportsController@get_activity_orders');
     Route::post('dashboard_data', 'ReportsController@getDashboardData');
+    Route::post('report_by_user', 'ReportsController@report_by_user');
+    Route::post('get_pto_job', 'ReportsController@get_pto_job');
 });
+
+Route::group([
+    'prefix' => 'config',
+], function () {
+    Route::post('get_all', 'ConfigurationController@get_all_configurations');
+    Route::post('save_config', 'ConfigurationController@save_configuration');
+});
+
+Route::resource('instalation', 'InstalationsController');
+Route::post('instalation/get_all/', 'InstalationsController@get_all_instalations');

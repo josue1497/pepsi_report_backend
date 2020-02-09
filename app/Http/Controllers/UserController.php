@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $response = DB::select('select * from users where role_id not in (select id from roles where value  = "AD") and remember_token = "Y"');
+        $response = DB::select('select * from users where role_id not in (select id from roles where value  = "AD")');
 
         return response()->json([
             'data' => $response,
@@ -117,22 +118,27 @@ class UserController extends Controller
         $user = DB::select('select * from users where id = ?', [$id]);
         if ($user) {
 
-            $pass = ($request->password) ? ', password = ' . Hash::make($request->password) : '';
-
-            if (DB::update(
-                'update users set username = ?,
+            // $pass = ($request->password) ? ', password = "' . $request->password . '"' : "";
+            try {
+                if (DB::update(
+                    'update users set username = ?,
                 name = ?, lastname = ?, email = ?,
-                phone_number = ?, identification_document = ?' .
-                    $pass . ' where id = ?',
-                [
-                    $request->username, $request->name, $request->lastname,
-                    $request->email, $request->phone_number,
-                    $request->identification_document, $id
-                ]
-            )) {
+                phone_number = ?, identification_document = ? where id = ?',
+                    [
+                        $request->username, $request->name, $request->lastname,
+                        $request->email, $request->phone_number,
+                        $request->identification_document, $id
+                    ]
+                )) {
+                    return response()->json([
+                        'message' => 'Usuario Actualizado',
+                        'status' => 200
+                    ]);
+                }
+            } catch (Exception $e) {
                 return response()->json([
-                    'message' => 'Usuario Actualizado',
-                    'status' => 200
+                    'message' => $e->getMessage(),
+                    'status' => 500
                 ]);
             }
         } else {

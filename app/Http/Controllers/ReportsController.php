@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -202,12 +203,12 @@ class ReportsController extends Controller
             ]);
         }
 
-        if (self::calculateDateDiff($request->from_date, $request->to_date, 30)) {
-            return response()->json([
-                'status' => "300",
-                'message' => 'Entre las fechas seleccionadas debe haber menos de un mes de diferencia.'
-            ]);
-        }
+        // if (self::calculateDateDiff($request->from_date, $request->to_date, 30)) {
+        //     return response()->json([
+        //         'status' => "300",
+        //         'message' => 'Entre las fechas seleccionadas debe haber menos de un mes de diferencia.'
+        //     ]);
+        // }
 
         $sqlOrderClass = " select count(k.report_type_id) cant, r.name, date_format(k.entry_date, '%b %d') entry_date " . $from_sentence . " as k
                            inner join report_type as r on (r.id=k.report_type_id) ";
@@ -502,7 +503,7 @@ class ReportsController extends Controller
 
     public function get_months(Request $request)
     {
-        $sql = 'select distinct(site) from kit_details_reports where site is not null and site!=""';
+        $sql = 'select distinct(`month`) from kit_details_reports where site is not null and site!=""';
         $data = DB::select($sql, [1]);
 
         return response()->json(
@@ -516,7 +517,7 @@ class ReportsController extends Controller
 
     public function get_sites(Request $request)
     {
-        $sql = 'select distinct(`month`) from kit_details_reports';
+        $sql = 'select distinct(site) from kit_details_reports where site is not null and site != ""';
         $data = DB::select($sql, [1]);
 
         return response()->json(
@@ -543,13 +544,18 @@ class ReportsController extends Controller
 
     public function get_pto_job(Request $request)
     {
+
+        $date_from = $request->from_date;
+        $date_to = $request->to_date;
+        $zone = $request->zone;
+
+        $and_zone = ($zone)?' and `zone` = "'.$zone.'" ':'';
+
         $sql = "select count(pto_tbjo_resp) cant, pto_tbjo_resp
         from kit_reports
         where init_date between ? and ?
+        ".($and_zone)."
         group by pto_tbjo_resp";
-
-        $date_from = $request->date_from;
-        $date_to = $request->date_to;
 
         $data = DB::select($sql, [$date_from, $date_to]);
 
@@ -557,7 +563,7 @@ class ReportsController extends Controller
             [
                 'data' => $data,
                 'message' => 'Busqueda exitosa.',
-                'code' => '200'
+                'code' => 200
             ]
         );
     }
@@ -565,48 +571,59 @@ class ReportsController extends Controller
     public function report_by_user(Request $request)
     {
 
-
         $user_id = $request->user_id;
         $date_from = $request->date_from;
         $date_to = $request->date_to;
 
-        $anulated_sql = "select * from kit_reports
-        where user_status='C000'
-        and DATE_ADD(init_date , INTERVAL 2 DAY) >= extreme_end_date
-        and user_id=? and entry_date between ? and ?
-        and extreme_end_date <= current_date";
+        try {
 
-        $anulated = DB::select($anulated_sql, [$user_id, $date_from, $date_to]);
+            $anulated_sql = "select count(*) cant,  entry_date from kit_reports
+            where lower(short_text) like lower('%ANULADA%')
+            and user_id= ? and entry_date between ? and ?
+            group by  entry_date
+            order by entry_date desc";
 
-        $sql_zone = "select count(`zone`) cant, `zone` from kit_reports
+            $anulated = DB::select($anulated_sql, [$user_id, $date_from, $date_to]);
+
+            $sql_zone = "select count(`zone`) cant, `zone` from kit_reports
         where user_id= ? and init_date between ? and ?
         and `zone` is not null
         group by `zone`";
 
-        $zone = DB::select($sql_zone, [$user_id, $date_from, $date_to]);
+            $zone = DB::select($sql_zone, [$user_id, $date_from, $date_to]);
 
-        $sql_status = "select count(user_status) cant, `user_status`
+            $sql_status = "select count(user_status) cant, `user_status`
         from kit_reports
         where user_id= ? and init_date between ? and ?
         group by `user_status`";
 
-        $status = DB::select($sql_status, [$user_id, $date_from, $date_to]);
+            $status = DB::select($sql_status, [$user_id, $date_from, $date_to]);
 
-        $sql_charge = "select count(charge_key) cant, charge_key
+            $sql_charge = "select count(charge_key) cant, charge_key
         from kit_reports
         where user_id= ? and init_date between ? and ?
         and charge_key is not null
         group by charge_key";
 
-        $charge = DB::select($sql_charge, [$user_id, $date_from, $date_to]);
+            $charge = DB::select($sql_charge, [$user_id, $date_from, $date_to]);
 
-        $sql_olds = "select * from kit_reports
+            $sql_olds = "select * from kit_reports
         where user_status='C000'
         and DATE_ADD(init_date , INTERVAL 2 DAY) >= extreme_end_date
         and user_id= ? and init_date between ? and ?
         and extreme_end_date <= current_date";
 
-        $olds = DB::select($$sql_olds, [$user_id, $date_from, $date_to]);
+            $olds = DB::select($sql_olds, [$user_id, $date_from, $date_to]);
+        } catch (Exception $e) {
+
+            return response()->json(
+                [
+                    'detail' => $e->getMessage(),
+                    'message' => 'Error',
+                    'code' => '500'
+                ]
+            );
+        }
 
 
         return response()->json(

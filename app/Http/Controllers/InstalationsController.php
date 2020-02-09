@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class InstalationsController extends Controller
 {
@@ -34,7 +36,39 @@ class InstalationsController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $select = "select * from instalation where zone = ?";
+        $data = DB::select($select, [$request->zone]);
+
+        if (!$data) {
+            try {
+                if (DB::insert("INSERT INTO instalation
+                (vc_1p, vc_2p, enfriador_1t, enfriador_2t,
+                enfriador_3t, passthrough, `zone`,
+                created_at, updated_at)
+                VALUES(?, ?, ?, ?,
+                ?, ?, ?,
+                current_timestamp, current_timestamp)", [
+                    $request->vc_1p, $request->vc_2p,
+                    $request->enfriador_1t, $request->enfriador_2t, $request->enfriador_3t,
+                    $request->passthrough, $request->zone
+                ])) {
+                    return response()->json([
+                        'status' => 200,
+                        'message' => 'success'
+                    ]);
+                }
+            } catch (Exception $e) {
+                return response()->json([
+                    'status' => 500,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }else{
+            return response()->json([
+                'status' => 500,
+                'message' => "Esta Zona ya fue registrada",
+            ]);
+        }
     }
 
     /**
@@ -68,7 +102,30 @@ class InstalationsController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $select = "select * from instalation where id = ?";
+        $data = DB::select($select, [$id]);
+
+        if ($data) {
+            try {
+                if (DB::update('update instalation set vc_1p=?,vc_2p=?, enfriador_1t=?,
+            enfriador_2t=?, enfriador_3t=?, passthrough=?
+            where id=?', [
+                    $request->vc_1p, $request->vc_2p,
+                    $request->enfriador_1t, $request->enfriador_2t, $request->enfriador_3t,
+                    $request->passthrough, $id
+                ])) {
+                    return response()->json([
+                        'status' => 200,
+                        'message' => 'success'
+                    ]);
+                }
+            } catch (Exception $e) {
+                return response()->json([
+                    'status' => 500,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -80,5 +137,18 @@ class InstalationsController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function get_all_instalations(Request $request)
+    {
+        $sql = "select * from instalation";
+
+        $data = DB::select($sql);
+
+        return response()->json([
+            'status' => 200,
+            'message' => 'success',
+            'data' => $data
+        ]);
     }
 }

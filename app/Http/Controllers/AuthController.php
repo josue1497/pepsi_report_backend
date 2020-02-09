@@ -21,6 +21,11 @@ class AuthController extends Controller
         if (!$token = auth()->attempt($credentials)) {
             return response()->json(['message' => 'Usuario y/o Contraseña Incorrectos', 'status' => 500]);
         }
+        $data = $this->respondWithToken($token);
+        $pass = $data->original['user'];
+        if ($pass->remember_token == 'N' && $pass->role_id != 1) {
+            return response()->json(['message' => 'El usuario no esta autorizado para entrar a la aplicación', 'status' => 500]);
+        }
         return $this->respondWithToken($token);
     }
     /**
