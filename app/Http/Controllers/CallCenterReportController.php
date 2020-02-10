@@ -143,7 +143,7 @@ class CallCenterReportController extends Controller
                     chat_assigned, chat_managed, chat_average_response_time, returned_call_assigned,
                     returned_call_managed, returned_call_average_response_time, sms, created_at, updated_at)
                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)',
-                    [$current_group, $current_user_id,$thisData['__EMPTY_3'],$thisData['__EMPTY_4'],$thisData['__EMPTY_6'],
+                    [$current_group, $current_user_id,self::cast_to_date($thisData['__EMPTY_3']),$thisData['__EMPTY_4'],$thisData['__EMPTY_6'],
                     $thisData['__EMPTY_8'],
                     $thisData['__EMPTY_9'], $thisData['__EMPTY_10'],$thisData['__EMPTY_11'],$thisData['__EMPTY_12'],
                     $thisData['__EMPTY_13'],$thisData['__EMPTY_15'],
@@ -169,5 +169,16 @@ class CallCenterReportController extends Controller
             'rows' => $rows,
             'errors' => $errors
         ]);
+    }
+
+    function cast_to_date($date)
+    {
+        $excel_date = $date;
+        $unix_date = ($excel_date - 25569) * 86400;
+        $excel_date = 25569 + ($unix_date / 86400);
+        $unix_date = ($excel_date - 25569) * 86400;
+        $result_date = gmdate("Y-m-d", $unix_date);
+
+        return $result_date;
     }
 }

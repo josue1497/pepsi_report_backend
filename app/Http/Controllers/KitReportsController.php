@@ -100,6 +100,8 @@ class KitReportsController extends Controller
         $rows = 0;
         $updated = 0;
 
+        $errors = [];
+
 
         $document_exist = false;
 
@@ -209,13 +211,14 @@ class KitReportsController extends Controller
                         $updated++;
                     }
                 } catch (Exception $e) {
-                    return response()->json([
-                        'message' => 'Importado con errores',
-                        'document' => $document_name,
-                        'rows' => $rows,
-                        'updated' => $updated,
-                        'error_exp' => $e->getMessage(),
-                    ]);
+                    // return response()->json([
+                    //     'message' => 'Importado con errores',
+                    //     'document' => $document_name,
+                    //     'rows' => $rows,
+                    //     'updated' => $updated,
+                    //     'error_exp' => $e->getMessage(),
+                    // ]);
+                    array_push($errors, ['error' => $e->getMessage(),'row' => $thisData]);
                 }
             }
         } else {
@@ -224,6 +227,8 @@ class KitReportsController extends Controller
                 'document' => $document_name,
                 'rows' => $rows,
                 'updated' => $updated,
+                'errors' => $errors
+
             ]);
         }
 
@@ -241,6 +246,7 @@ class KitReportsController extends Controller
             'document' => $document_name,
             'rows' => $rows,
             'updated' => $updated,
+            'errors' => $errors
         ]);
     }
 
