@@ -153,7 +153,8 @@ class ReportsController extends Controller
         $query = "select * from kit_reports
         where user_status='C000'
         and DATE_ADD(init_date , INTERVAL 2 DAY) >= extreme_end_date
-        and extreme_end_date <= current_date";
+        and extreme_end_date <= current_date
+        order by init_date";
 
         $data = DB::select($query);
 
